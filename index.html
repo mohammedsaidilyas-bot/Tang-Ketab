@@ -1,30 +1,439 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="id" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tang Ketab - Fathul Mu'in</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Kitab Digital 3D - Fathul Mu'in</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            background: #1e1e2f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: sans-serif;
+            color: #fff;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        /* TAMPILAN MENU UTAMA YANG RINGKAS */
+        #menuScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Gambar Cover Kitab Langsung Bisa Diklik */
+        .book-cover-preview {
+            width: 160px;
+            height: 220px;
+            background: #b58d3d;
+            border: 3px solid #ffdf00;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .book-cover-preview:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(255,223,0,0.3);
+        }
+
+        .book-cover-preview:active {
+            transform: scale(0.98);
+        }
+
+        .book-cover-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+        }
+
+        .hint-text {
+            color: #ffdf00;
+            font-size: 14px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        /* TAMPILAN PEMBACAAN (READER) */
+        #readerScreen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .back-menu-btn {
+            background: #444;
+            color: #ffdf00;
+            border: 1px solid #ffdf00;
+            padding: 8px 14px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .back-menu-btn:active { transform: scale(0.95); }
+
+        .book-container {
+            perspective: 3000px;
+            margin-bottom: 20px;
+        }
+
+        .book {
+            width: 740px;
+            height: 500px;
+            position: relative;
+            transform-style: preserve-3d;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            background: #b58d3d;
+            border-radius: 6px;
+        }
+
+        .sheet {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+            transform-origin: right center;
+            transition: transform 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .sheet.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            box-sizing: border-box;
+            border: 1px solid #dcd6cd;
+            background-color: #fdfbf7;
+            backface-visibility: hidden;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .front {
+            transform: rotateY(0deg);
+            z-index: 2;
+        }
+
+        .back {
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+
+        .page img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+        }
+
+        .book::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 30px;
+            height: 100%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, rgba(0,0,0,0.15), rgba(0,0,0,0.35), rgba(0,0,0,0.15));
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .nav-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 25px;
+            z-index: 1000;
+        }
+
+        button {
+            background: #ffdf00;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #1e1e2f;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        button:active { transform: scale(0.95); }
+        #info { font-size: 14px; font-weight: bold; color: #ffdf00; }
+    </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <h1>فتح المعين</h1>
-        <p id="page-info">Halaman 1 dari 150</p>
-    </header>
-
-    <main class="viewer-container">
-        <div class="image-wrapper">
-            <!-- Menampilkan gambar dari folder pages -->
-            <img id="kitab-image" src="pages/فتح المعين_page-0001.jpg" alt="Halaman Kitab">
+    <!-- 1. HALAMAN MENU UTAMA (RINGKAS) -->
+    <div id="menuScreen">
+        <!-- Gambar Cover Kitab yang langsung berfungsi sebagai tombol pembuka -->
+        <div class="book-cover-preview" id="coverPreview" onclick="openReader()">
+            Memuat...
         </div>
-    </main>
+        <div class="hint-text">Sentuh Cover untuk Membaca</div>
+    </div>
 
-    <nav class="app-navigation">
-        <button id="prev-btn" class="nav-btn">← Sebelumnya</button>
-        <button id="next-btn" class="nav-btn">Selanjutnya →</button>
-    </nav>
+    <!-- 2. HALAMAN PEMBACAAN KITAB (READER) -->
+    <div id="readerScreen">
+        <div class="top-bar">
+            <button class="back-menu-btn" onclick="backToMenu()">❮ Kembali ke Menu</button>
+        </div>
 
-    <script src="script.js"></script>
+        <div class="book-container" id="bookContainer">
+            <div class="book" id="myBook"></div>
+        </div>
+
+        <div class="nav-container">
+            <button onclick="prevPage()">❮ Sebelumnya</button>
+            <span id="info">Memuat...</span>
+            <button onclick="nextPage()">Lanjut ❯</button>
+        </div>
+    </div>
+
+<script>
+    const totalPages = 100; 
+    const bookElement = document.getElementById('myBook');
+    const infoText = document.getElementById('info');
+    const menuScreen = document.getElementById('menuScreen');
+    const readerScreen = document.getElementById('readerScreen');
+    const coverPreview = document.getElementById('coverPreview');
+    
+    let sheets = [];
+    let currentLocation = 0; 
+    let isInitialized = false;
+
+    const baseUrl = "https://cdn.jsdelivr.net/gh/mohammedsaidilyas-bot/Tang-Ketab@main/";
+
+    // Muat gambar halaman 1 (Cover Asli) untuk menu utama
+    function loadCoverImage() {
+        let imgUrl = `${baseUrl}1.jpg`;
+        let img = document.createElement('img');
+        img.src = imgUrl;
+        img.alt = "Cover Fathul Mu'in";
+        
+        img.onload = function() {
+            coverPreview.innerHTML = '';
+            coverPreview.appendChild(img);
+        };
+        
+        img.onerror = function() {
+            coverPreview.innerText = "Cover Kitab";
+        };
+    }
+    loadCoverImage();
+
+    let mapping = [];
+    mapping.push({ front: 1, back: 2 });
+
+    for (let p = 3; p <= totalPages; p += 2) {
+        mapping.push({
+            front: p,
+            back: (p + 1 <= totalPages) ? p + 1 : null
+        });
+    }
+
+    let totalSheets = mapping.length;
+
+    mapping.forEach((map, index) => {
+        let sheet = document.createElement('div');
+        sheet.className = 'sheet';
+        sheet.dataset.index = index;
+        sheet.style.zIndex = totalSheets - index;
+
+        let frontDiv = document.createElement('div');
+        frontDiv.className = 'page front';
+        frontDiv.dataset.page = map.front;
+        frontDiv.innerText = `Hal ${map.front}`;
+
+        let backDiv = document.createElement('div');
+        backDiv.className = 'page back';
+        if (map.back) {
+            backDiv.dataset.page = map.back;
+            backDiv.innerText = `Hal ${map.back}`;
+        } else {
+            backDiv.style.backgroundColor = '#d8d0c5';
+        }
+
+        sheet.appendChild(frontDiv);
+        sheet.appendChild(backDiv);
+        
+        bookElement.appendChild(sheet);
+        sheets.push(sheet);
+    });
+
+    function loadPageImage(pageDiv) {
+        if (!pageDiv) return;
+        let pageNum = pageDiv.dataset.page;
+        if (!pageNum) return;
+
+        if (!pageDiv.querySelector('img')) {
+            let imgUrl = `${baseUrl}${pageNum}.jpg`;
+            let img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = `Hal ${pageNum}`;
+            
+            img.onload = function() {
+                pageDiv.innerText = '';
+                pageDiv.appendChild(img);
+            };
+            
+            img.onerror = function() {
+                pageDiv.innerText = `Gagal ${pageNum}`;
+            };
+        }
+    }
+
+    function updateBook() {
+        sheets.forEach((sheet, index) => {
+            if (index < currentLocation) {
+                sheet.classList.add('flipped');
+                sheet.style.zIndex = index;
+            } else {
+                sheet.classList.remove('flipped');
+                sheet.style.zIndex = totalSheets - index;
+            }
+        });
+
+        if (currentLocation < totalSheets) {
+            let currentSheet = sheets[currentLocation];
+            loadPageImage(currentSheet.querySelector('.front'));
+            loadPageImage(currentSheet.querySelector('.back'));
+        }
+        if (currentLocation > 0) {
+            let prevSheet = sheets[currentLocation - 1];
+            loadPageImage(prevSheet.querySelector('.front'));
+            loadPageImage(prevSheet.querySelector('.back'));
+        }
+
+        updateInfoText();
+    }
+
+    function updateInfoText() {
+        if (currentLocation === 0) {
+            infoText.innerText = `Sampul (Hal 1) dari ${totalPages}`;
+        } else {
+            let currentMap = mapping[currentLocation - 1];
+            let left = currentMap.back ? currentMap.back : "";
+            let right = currentMap.front;
+            infoText.innerText = `Halaman ${right} ${left ? '& ' + left : ''} dari ${totalPages}`;
+        }
+    }
+
+    function nextPage() {
+        if (currentLocation < totalSheets) {
+            currentLocation++;
+            updateBook();
+        }
+    }
+
+    function prevPage() {
+        if (currentLocation > 0) {
+            currentLocation--;
+            updateBook();
+        }
+    }
+
+    // Fungsi Transisi Layar
+    function openReader() {
+        menuScreen.style.display = 'none';
+        readerScreen.style.display = 'flex';
+        
+        if (!isInitialized) {
+            loadPageImage(sheets[0].querySelector('.front'));
+            loadPageImage(sheets[0].querySelector('.back'));
+            updateBook();
+            isInitialized = true;
+        }
+    }
+
+    function backToMenu() {
+        readerScreen.style.display = 'none';
+        menuScreen.style.display = 'flex';
+    }
+
+    // Klik langsung pada halaman
+    sheets.forEach((sheet, index) => {
+        sheet.addEventListener('click', (e) => {
+            const rect = sheet.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            
+            if (index === currentLocation) {
+                nextPage();
+            } else if (index === currentLocation - 1) {
+                prevPage();
+            }
+        });
+    });
+
+    // Geser (Swipe) disesuaikan
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const container = document.getElementById('bookContainer');
+
+    container.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    });
+
+    container.addEventListener('touchend', e => {
+        let touchEndX = e.changedTouches[0].screenX;
+        let touchEndY = e.changedTouches[0].screenY;
+        
+        let diffX = touchEndX - touchStartX;
+        let diffY = Math.abs(touchEndY - touchStartY);
+
+        if (Math.abs(diffX) > 50 && diffY < 100) {
+            if (diffX < 0) {
+                nextPage();
+            } else {
+                prevPage();
+            }
+        }
+    });
+</script>
+
 </body>
 </html>
