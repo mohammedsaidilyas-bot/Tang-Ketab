@@ -1,0 +1,15 @@
+{
+  "name": "Tang Ketab",
+  "short_name": "Tang Ketab",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1e1e2f",
+  "theme_color": "#1e1e2f",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/mohammedsaidilyas-bot/Tang-Ketab@main/1.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
